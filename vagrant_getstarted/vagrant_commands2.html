@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Vagrant: Creating Boxes</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/font-awesome.min.css">
+    <link rel="stylesheet" href="css/vagrant.css">
+    <link href='http://fonts.googleapis.com/css?family=Average|Fjalla+One' rel='stylesheet' type='text/css'>
+</head>
+
+<body>
+    <header>
+        <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+            <div class="container">
+                <!-- Brand and toggle get grouped for better mobile display -->
+                <div class="navbar-header">
+                    <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                        <span class="sr-only">Toggle navigation</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand" href="https://docs.vagrantup.com/v2/" target="_blank">Home</a>
+                </div>
+
+                <!-- Collect the nav links, forms, and other content for toggling -->
+                <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                    <ul class="nav navbar-nav">
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Vagrant <span class="caret"></span></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li><a href="vagrant_commands1.html">Working with boxes</a>
+                                </li>
+                                <li class="divider"></li>
+                                <li class="dropdown-header">Customizing Boxes</li>
+                                <li><a href="vagrant_commands2.html">Creating Vagrant Box</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li><a href="index.html">About</a></li>
+                    </ul>
+                </div>
+                <!-- /.navbar-collapse -->
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+
+        <div class="row">
+            <div class="page-header">
+                <h1>Creating a Base box from Scratch <small>(VirtualBox)</small></h1>
+            </div>
+            <p>Most commonly used boxes with different flavors are packaged and available on vagrantcloud for download.<br/>
+More often than not, if you are working for a software development shop, it is likely that the Dev environment is more than just the commonly used base boxes.</p>
+            <p>
+            This tutorial outlines the steps required to create a vagrant base box from scratch. <br/>
+            This tutorial assumes that you use VirtualBox as your provider for packaging your base box.<br/>
+            The steps for setting up a VMware provider also should be similar, but different.
+            </p>
+        </div>
+
+        <div class="row">
+            <div class="page-header">
+                <h2>Prerequisites</h2>
+            </div>
+            <ol>
+                <li>Vagrant Installed</li>
+                <li>VirtualBox Installed</li>
+                <li>VirtualBox Guest Additions</li>
+            </ol>
+        </div>
+        <div class="row">
+            <div class="page-header">
+                <h2>Step 1: Create the VM</h2>
+            </div>
+            <ol>
+                <li>Launch VirtualBox and create a new VM</li>
+                <li>Allocate atleast 40GB of disk space and choose "dynamic resizing" to allow the box to grow</li>
+                <li>Allocate a minimum of 512MB of RAM - Note: Always err on the side of caution, not all users may have enough RAMs on their desktops.</li>
+                <li>Disable Audio, USB, FloppyDrive and any other non-essential peripheral controllers.</li>
+            </ol>
+            <p>
+            The only thing that Vagrant absolutley requires is that the first network device must be NAT device.<br/>
+            Vagrant uses this initial NAT device for setting up port forwards necessary for SSH. Without this properly configured, the VM will not boot.
+            </p>
+        </div>
+        <div class="row">
+            <div class="page-header">
+                <h2>Step 2: Install OS on VM</h2>
+            </div>
+            <p>
+                <ol>
+                    <li>With Step 1 Complete, go ahead and start the VM</li>
+                    <li>Install the OS from an iso (mounted) or from a network location</li>
+                </ol>
+            </p>
+        </div>
+        <div class="row">
+            <div class="page-header">
+                <h2>Step 3: Create default user account</h2>
+            </div>
+            <p>
+                <ol>
+                    <li>
+                        Once the OS is installed create a default user - for e.g. let's call this user "debug" <br/>
+       Once your Vagrant box is ready and you boot the vm using <code>`vagrant up`</code> and ssh to the vm using `vagrant ssh`, Vagrant will SSH into the VM using this user.<br/>
+       The below variable will go into the VagrantFile for packaging - more later
+                           <code>config.ssh.username="debug"</code>
+
+                    </li>
+                    <li>add this user to the "sudoers" list</li>
+                    <li>generate rsa2048 strength public/private key pair</li>
+                    <li>Grant permissions for debug user to .ssh directory for logging in<br/>
+                        <div class="well">
+                           <code>
+                            $ mkdir /home/debug/.ssh/<br/>
+                            $ chmod 700 /home/debug/.ssh<br/>
+                            $ cd /home/debug/.ssh<br/>
+                            $ echo "[PUBLICKEY STRING HERE]" > authorized_keys<br/>
+                            $ echo "[PRIVATEKEY STRING HERE]" > /home/debug/.ssh/id_rsa<br/>
+                            $ chmod -R 600 /home/debug/.ssh/<br/>
+                            $ chown -R debug /home/debug/.ssh<br/>
+                           </code>
+                        </div>
+
+                    </li>
+                    <li>add "debug" user to sudoers file, disable <code>requiretty</code> option when configuring sudo access</li>
+                </ol>
+            </p>
+        </div>
+        <div class="row">
+            <div class="page-header">
+                <h2>Step 4: Remove any udev rules</h2>
+            </div>
+            <div class="well">
+                <p>
+                <code>
+                $ rm /etc/udev/rules.d/70-persistent-net.rules<br/>
+                $ mkdir /etc/udev/rules.d/70-persistent-net.rules<br/>
+                $ rm -rf /dev/.udev/<br/>
+                $ rm /lib/udev/rules.d/75-persistent-net-generator.rules<br/>
+                </code>
+                </p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="page-header">
+                <h2>Step 5: Minimizing the box size</h2>
+            </div>
+            <p>
+                Start by removing any unnecessary packages from the system. Easy things to remove are build tools, linux-headers, man pages,                    and so on.
+            </p>
+            <p>
+                Next, fill the virtual hard drive with zeros and delete the zero-filled file. <br/>
+                This fixes frag‐ mentation issues with the underlying disk, which allows it to compress much more efficiently later.                     </p>
+            <p>
+                On Ubuntu, it looks like this: <br/>
+                <div class="well">
+                <p>
+                    <code>
+                    $ dd if=/dev/zero of=/EMPTY bs=1M<br/>
+                    ...<br/>
+                    $ rm -f /EMPTY<br/>
+                    </code>
+                </p>
+                </div>
+            </p>
+            <p>
+                Make sure that creating the zero-filled file is the final thing you do prior to packaging, so that the hard drive is in a pristine state for packaging with optimal disk space efficiency.
+            </p>
+        </div>
+        <div class="row">
+            <div class="page-header">
+                <h2>Step 6: Package the VM</h2>
+            </div>
+            <div class="well">
+              <p>
+               <code>
+                $ vagrant package --base my_new_box<br/>
+                [my_new_box] Clearing any previously set forwarded ports...<br/>
+                [my_new_box] Creating temporary directory for export...<br/>
+                [my_new_box] Exporting VM...<br/>
+                [my_new_box] Compressing package to: /private/tmp/v/package.box<br/>
+               </code>
+               </p>
+            </div>
+        </div>
+    </div>
+    <!--container-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+</body>
+
+</html>
